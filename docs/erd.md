@@ -19,7 +19,7 @@ erDiagram
     RECEIVING_DOCUMENT_ITEMS ||--o{ INVENTORY_TRANSACTIONS : generates
 
     USERS {
-        bigint id PK
+        bigint id_user PK
         varchar name
         varchar email UK
         varchar password
