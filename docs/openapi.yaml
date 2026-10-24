@@ -1,0 +1,394 @@
+openapi: 3.0.3
+
+info:
+  title: Warehouse Receiving System API
+  version: 1.0.0
+  description: >
+    REST API for managing products, receiving documents,
+    inventory stock, and inventory transaction history.
+
+servers:
+  - url: http://localhost:8000/api belom fix
+    description: Local development server
+
+tags:
+  - name: Authentication
+  - name: Products
+  - name: Receiving Documents
+  - name: Inventory
+
+paths:
+  /register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: Warehouse Operator
+                email:
+                  type: string
+                  format: email
+                  example: operator@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePassword123
+      responses:
+        "201":
+          description: User registered successfully
+        "422":
+          description: Validation failed
+
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid credentials
+        "422":
+          description: Validation failed
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: Log out the current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logout successful
+        "401":
+          description: Unauthenticated
+
+  /me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user information
+        "401":
+          description: Unauthenticated
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: List products
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Product list returned successfully
+
+    post:
+      tags:
+        - Products
+      summary: Create a product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sku
+                - name
+              properties:
+                sku:
+                  type: string
+                  example: KB-001
+                name:
+                  type: string
+                  example: Mechanical Keyboard
+      responses:
+        "201":
+          description: Product created successfully
+        "401":
+          description: Unauthenticated
+        "409":
+          description: SKU already exists
+        "422":
+          description: Validation failed
+
+  /products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+
+    get:
+      tags:
+        - Products
+      summary: Get product details
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Product details returned
+        "404":
+          description: Product not found
+
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sku
+                - name
+              properties:
+                sku:
+                  type: string
+                name:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Product updated successfully
+        "404":
+          description: Product not found
+        "422":
+          description: Validation failed
+
+  /receiving-documents:
+    get:
+      tags:
+        - Receiving Documents
+      summary: List receiving documents
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Receiving document list returned
+
+    post:
+      tags:
+        - Receiving Documents
+      summary: Create a receiving document
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_number
+                - items
+              properties:
+                document_number:
+                  type: string
+                  example: RCV-2026-001
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - expected_quantity
+                    properties:
+                      product_id:
+                        type: integer
+                        format: int64
+                      expected_quantity:
+                        type: integer
+                        minimum: 1
+      responses:
+        "201":
+          description: Receiving document created successfully
+        "401":
+          description: Unauthenticated
+        "409":
+          description: Document number already exists
+        "422":
+          description: Validation failed
+
+  /receiving-documents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+
+    get:
+      tags:
+        - Receiving Documents
+      summary: Get receiving document details
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Receiving document details returned
+        "404":
+          description: Receiving document not found
+
+  /receiving-documents/{id}/items/{itemId}/receive:
+    post:
+      tags:
+        - Receiving Documents
+      summary: Record a receipt for a receiving document item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 5
+      responses:
+        "200":
+          description: Receipt recorded successfully
+        "401":
+          description: Unauthenticated
+        "404":
+          description: Document or item not found
+        "409":
+          description: Receipt conflicts with current document state
+        "422":
+          description: Invalid quantity or quantity exceeds remaining expected quantity
+
+  /inventory:
+    get:
+      tags:
+        - Inventory
+      summary: List inventory stock
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Inventory list returned successfully
+        "401":
+          description: Unauthenticated
+
+  /inventory/{productId}:
+    get:
+      tags:
+        - Inventory
+      summary: Get inventory for a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Product inventory returned
+        "404":
+          description: Inventory not found
+
+  /inventory/transactions:
+    get:
+      tags:
+        - Inventory
+      summary: List inventory transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Inventory transaction history returned
+        "401":
+          description: Unauthenticated
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum token
