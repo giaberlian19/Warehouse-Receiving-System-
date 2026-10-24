@@ -29,7 +29,7 @@ erDiagram
     }
 
     PRODUCTS {
-        bigint id PK
+        bigint id_product PK
         varchar sku UK
         varchar name
         boolean is_active
@@ -38,7 +38,7 @@ erDiagram
     }
 
     RECEIVING_DOCUMENTS {
-        bigint id PK
+        bigint id_Document PK
         varchar document_number UK
         varchar status
         bigint created_by FK
@@ -47,7 +47,7 @@ erDiagram
     }
 
     RECEIVING_DOCUMENT_ITEMS {
-        bigint id PK
+        bigint id_Document_receiving PK
         bigint receiving_document_id FK
         bigint product_id FK
         integer expected_quantity
@@ -57,7 +57,7 @@ erDiagram
     }
 
     INVENTORIES {
-        bigint id PK
+        bigint id_inventories PK
         bigint product_id FK, UK
         integer quantity
         timestamp created_at
@@ -65,7 +65,7 @@ erDiagram
     }
 
     INVENTORY_TRANSACTIONS {
-        bigint id PK
+        bigint id_inventory_transactions PK
         bigint product_id FK
         bigint receiving_document_item_id FK
         bigint performed_by FK
