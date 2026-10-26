@@ -42,7 +42,7 @@ Tujuan bisnis yang ingin dicapai adalah:
 
 ## 2. User Roles and Responsibilities
 
-Sistem memiliki dua peran utama, yaitu operator gudang dan supervisor gudang.
+Sistem memiliki dua peran bisnis utama. Di implementasi, operator gudang dipetakan ke role `staff`, sedangkan supervisor gudang dipetakan ke `admin`. Registrasi publik hanya membuat `staff`; role `admin` diberikan oleh administrator melalui script promosi akun.
 
 ### 2.1 Warehouse Operator (Operator Gudang)
 
@@ -72,7 +72,7 @@ Tanggung jawab:
 - Memeriksa riwayat transaksi persediaan.
 - Memantau kesalahan atau operasi penerimaan yang tidak valid.
 
-**Asumsi:** Supervisor dapat mengakses fitur pemantauan yang tersedia bagi operator. Hak untuk membatalkan dokumen atau memberikan persetujuan tambahan belum ditentukan dalam assessment.
+Operator (`staff`) dapat membuat produk/dokumen dan mencatat penerimaan. Supervisor (`admin`) dapat menggunakan fitur operasional dan pemantauan, memperbarui/nonaktifkan produk, serta menyelesaikan dokumen secara manual. Dokumen juga selesai otomatis saat seluruh item telah diterima. Hak untuk membatalkan dokumen atau memberikan persetujuan tambahan belum ditentukan dalam assessment.
 
 ---
 
@@ -121,7 +121,7 @@ Persyaratan:
 - FR-03.5: Sistem harus memperbarui persediaan setelah penerimaan berhasil.
 - FR-03.6: Sistem harus mencatat setiap penerimaan yang berhasil dalam riwayat transaksi.
 - FR-03.7: Sistem harus mencegah kegagalan operasi menyebabkan perubahan data secara parsial.
-- FR-03.8: Sistem harus mencegah permintaan berulang atau bersamaan menyebabkan pencatatan penerimaan ganda.
+- FR-03.8: Sistem harus mencegah permintaan berulang atau bersamaan menyebabkan pencatatan penerimaan ganda melalui row lock dan header idempotensi pada receipt.
 
 ### FR-04 — Receiving Document Status
 

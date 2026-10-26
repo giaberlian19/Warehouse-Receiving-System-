@@ -19,7 +19,7 @@ Komponen sistem:
 1. **Frontend:** Next.js menggunakan TypeScript untuk menampilkan antarmuka pengguna dan mengirim permintaan ke backend.
 2. **Backend:** express menyediakan REST API, autentikasi, validasi bisnis, dan pemrosesan transaksi.
 3. **Database:** PostgreSQL menyimpan data pengguna, produk, dokumen penerimaan, inventaris, dan riwayat transaksi.
-4. **Authentication:** Laravel Sanctum digunakan untuk autentikasi API.
+4. **Authentication:** JWT Bearer token digunakan untuk autentikasi API.
 5. **Containerization:** Docker dan Docker Compose digunakan untuk menjalankan aplikasi dan database dengan konfigurasi yang terdokumentasi.
 
 Stack tersebut merupakan pilihan implementasi yang diusulkan. Framework dan layanan dapat disesuaikan selama memenuhi persyaratan assessment.
@@ -76,12 +76,12 @@ Menyimpan informasi pengguna yang dapat mengakses sistem.
 | created_at | TIMESTAMP    | Nullable sesuai implementasi |
 | updated_at | TIMESTAMP    | Nullable sesuai implementasi |
 
-Nilai role yang didukung pada MVP:
+Nilai role aktual yang didukung pada MVP:
 
-- `operator`
-- `supervisor`
+- `staff` untuk operator gudang
+- `admin` untuk supervisor gudang
 
-Password harus disimpan dalam bentuk hash, bukan teks biasa.
+Registrasi publik hanya membuat role `staff`; role `admin` diberikan secara administratif. Password harus disimpan dalam bentuk hash, bukan teks biasa.
 
 ### 2.2 Products
 
@@ -226,7 +226,7 @@ Field `errors` dapat dihilangkan untuk error yang tidak berkaitan dengan validas
 | POST   | `/api/logout`   | Mengakhiri sesi atau mencabut token             |
 | GET    | `/api/me`       | Mengambil informasi pengguna yang sedang login  |
 
-Registrasi publik tidak boleh memberi pengguna hak supervisor secara otomatis. Akun supervisor harus dibuat atau diberikan oleh mekanisme administratif yang aman.
+Registrasi publik membuat akun `staff`. Akun `admin` dipromosikan secara eksplisit menggunakan script administratif `npm run promote-admin` dan variabel `ADMIN_EMAIL`; endpoint registrasi tidak menerima pilihan role.
 
 ### 3.3 Product Endpoints
 
@@ -489,18 +489,19 @@ Status tidak boleh dimundurkan dari `completed` melalui operasi penerimaan norma
 
 Sistem menggunakan dua role pada MVP.
 
-| Feature                        | Operator | Supervisor         |
-| ------------------------------ | -------- | ------------------ |
-| Melihat daftar produk          | Yes      | Yes                |
-| Membuat dan memperbarui produk | Yes      | Yes                |
-| Melihat dokumen penerimaan     | Yes      | Yes                |
-| Membuat dokumen penerimaan     | Yes      | Yes                |
-| Mencatat penerimaan            | Yes      | Yes                |
-| Melihat inventaris             | Yes      | Yes                |
-| Melihat riwayat transaksi      | Yes      | Yes                |
-| Mengelola role pengguna        | No       | Belum termasuk MVP |
+| Feature                        | `staff` / Operator | `admin` / Supervisor |
+| ------------------------------ | ------------------ | ------------------- |
+| Melihat daftar produk          | Yes                | Yes                 |
+| Membuat produk                 | Yes                | Yes                 |
+| Memperbarui/nonaktifkan produk | No                 | Yes                 |
+| Melihat dokumen penerimaan     | Yes                | Yes                 |
+| Membuat dokumen dan item       | Yes                | Yes                 |
+| Mencatat penerimaan            | Yes                | Yes                 |
+| Menyelesaikan dokumen manual   | No                 | Yes                 |
+| Melihat inventaris/riwayat     | Yes                | Yes                 |
+| Mengelola role pengguna        | No                 | Script administratif |
 
-Matriks di atas merupakan asumsi awal untuk MVP. Jika PRD atau keputusan bisnis menetapkan pembatasan tambahan, matriks ini harus diperbarui sebelum implementasi.
+Registrasi publik hanya menghasilkan `staff`. Role `admin` diberikan dengan script administratif kepada akun yang telah terdaftar, bukan melalui request publik.
 
 ### 6.2 Security Requirements
 
@@ -513,9 +514,9 @@ Matriks di atas merupakan asumsi awal untuk MVP. Jika PRD atau keputusan bisnis 
 7. Input harus divalidasi pada backend meskipun frontend sudah melakukan validasi.
 8. Error tidak boleh menampilkan password, token, atau detail internal database.
 9. Operasi yang mengubah stok harus dicatat dengan `performed_by`.
-10. Akun supervisor tidak boleh diperoleh melalui registrasi publik biasa.
+10. Akun admin tidak boleh diperoleh melalui registrasi publik biasa.
 
-Jika menggunakan Laravel Sanctum dengan cookie-based authentication, CSRF dan konfigurasi stateful domain harus ditangani. Jika menggunakan token Bearer, penyimpanan token di frontend harus dirancang dengan aman.
+Backend menggunakan JWT Bearer. Frontend menyimpan token hanya di memori aplikasi; pengguna perlu login kembali setelah halaman dimuat ulang.
 
 ---
 
@@ -556,7 +557,7 @@ Strategi harus diuji dengan database PostgreSQL yang digunakan pada lingkungan i
 
 Request yang dikirim ulang tidak boleh menyebabkan stok bertambah tanpa kendali.
 
-Untuk MVP, backend wajib melakukan validasi state dan locking. Jika waktu dan cakupan memungkinkan, tambahkan idempotency key atau mekanisme identifikasi request unik untuk mencegah pengulangan operasi yang sama akibat retry jaringan.
+Receipt memerlukan header `Idempotency-Key`. Kunci dan payload request disimpan dalam transaksi yang sama dengan pembaruan stok. Retry payload identik mengembalikan response sukses terdahulu tanpa mengubah stok lagi; penggunaan kunci yang sama untuk payload berbeda ditolak.
 
 ---
 
@@ -658,8 +659,9 @@ Gunakan file `.env.example` sebagai template tanpa secret asli. File `.env` yang
 
 ### 9.3 Database Migrations
 
-- Semua tabel dibuat menggunakan migration yang disimpan dalam repository.
+- Semua tabel dibuat menggunakan migration yang disimpan dan dilacak dalam repository.
 - Migration harus dapat dijalankan pada database kosong.
+- Migration yang telah diterapkan tidak dijalankan ulang; DDL awal menggunakan `IF NOT EXISTS` agar dapat mengenali skema yang telah dibuat oleh versi sebelumnya.
 - Foreign key, unique constraint, dan constraint quantity harus didokumentasikan.
 - Data awal hanya ditambahkan melalui seeder yang memang dibutuhkan.
 

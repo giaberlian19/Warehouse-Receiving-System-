@@ -8,7 +8,7 @@ info:
     inventory stock, and inventory transaction history.
 
 servers:
-  - url: http://localhost:8000/api belom fix
+  - url: http://localhost:3000/api
     description: Local development server
 
 tags:
@@ -296,6 +296,13 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique key for this receipt operation; reuse it only when retrying the same request.
+          schema:
+            type: string
+            maxLength: 255
       requestBody:
         required: true
         content:
@@ -314,10 +321,12 @@ paths:
           description: Receipt recorded successfully
         "401":
           description: Unauthenticated
+        "400":
+          description: Idempotency-Key header is required or invalid
         "404":
           description: Document or item not found
         "409":
-          description: Receipt conflicts with current document state
+          description: Receipt conflicts with current document state or the idempotency key was reused with a different request
         "422":
           description: Invalid quantity or quantity exceeds remaining expected quantity
 
@@ -391,4 +400,4 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: Sanctum token
+      bearerFormat: JWT
